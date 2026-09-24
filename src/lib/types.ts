@@ -125,6 +125,15 @@ export const PATTERNS = [
 ] as const;
 export type Pattern = (typeof PATTERNS)[number];
 
+/** A named colour the app can also draw with. */
+export interface ColorOption {
+  name: string;
+  /** Hex used for swatches and for the generated garment illustration. */
+  hex: string;
+  /** Rough family, used for colour matching in the stylist. */
+  family: "neutral" | "warm" | "cool" | "bright";
+}
+
 export type ImageView = "front" | "back";
 
 export type ProcessingStatus = "pending" | "processing" | "done" | "failed";
@@ -343,4 +352,6 @@ export interface ClosetData {
   events: CalendarEvent[];
   /** True until the person adds or removes something themselves. */
   usingSampleCloset: boolean;
+  /** False until the browser's stored closet has been read back in. */
+  hydrated?: boolean;
 }

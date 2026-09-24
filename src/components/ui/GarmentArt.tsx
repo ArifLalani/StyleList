@@ -88,6 +88,8 @@ interface ShapeDef {
   details?: ReactNode;
   /** Where a printed graphic would sit: x, y, width, height. */
   chest?: [number, number, number, number];
+  /** Where the contact shadow sits, for shapes that do not reach the floor. */
+  shadowY?: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -294,6 +296,7 @@ function buildShape(shape: GarmentShape, p: Palette): ShapeDef {
         body:
           "M30,126 C26,110 30,94 42,84 L70,62 C78,56 88,55 96,60 L118,74 C130,82 142,87 156,90 C170,93 178,102 180,116 L181,128 C181,138 174,144 162,144 L44,144 C35,144 30,137 30,128 Z",
         chest: [96, 84, 34, 28],
+        shadowY: 160,
         details: (
           <>
             <path
@@ -319,6 +322,7 @@ function buildShape(shape: GarmentShape, p: Palette): ShapeDef {
         body:
           "M34,132 C30,116 36,102 52,94 L92,74 C104,68 116,70 126,78 L154,100 C168,111 174,120 174,130 C174,140 166,144 154,144 L48,144 C38,144 34,139 34,132 Z",
         chest: [96, 92, 30, 22],
+        shadowY: 160,
         details: (
           <>
             <path d="M32,134 L176,134 C176,142 168,148 156,148 L48,148 C38,148 32,142 32,136 Z" fill={p.accent} stroke={p.line} strokeWidth={1.2} />
@@ -331,21 +335,25 @@ function buildShape(shape: GarmentShape, p: Palette): ShapeDef {
 
     case "cap":
       return {
-        body: "M54,126 C54,80 146,74 150,120 L150,128 L54,128 Z",
-        chest: [84, 88, 32, 22],
+        body: "M48,130 C48,88 70,64 100,64 C130,64 148,90 148,130 Z",
+        chest: [80, 86, 40, 26],
+        shadowY: 158,
         details: (
           <>
+            {/* Brim, sweeping forward from the base of the crown. */}
             <path
-              d="M146,124 C170,122 188,128 188,134 C188,140 170,142 146,138 Z"
+              d="M143,130 C170,129 188,135 188,141 C188,147 164,149 140,144 C142,140 143,135 143,130 Z"
               fill={p.dark}
               stroke={p.line}
               strokeWidth={1.4}
               strokeLinejoin="round"
             />
-            <path d="M100,78 L100,126" {...softSeam} />
-            <path d="M76,84 C84,100 86,114 86,126" {...softSeam} />
-            <path d="M124,84 C116,100 114,114 114,126" {...softSeam} />
-            <circle cx="100" cy="76" r="4" fill={p.dark} stroke={p.line} strokeWidth={1.2} />
+            {/* Sweatband along the opening. */}
+            <path d="M48,123 L148,123 L148,131 L48,131 Z" fill={p.dark} opacity={0.85} />
+            <path d="M100,65 L100,123" {...softSeam} />
+            <path d="M77,71 C70,88 68,106 68,123" {...softSeam} />
+            <path d="M123,71 C130,88 132,106 132,123" {...softSeam} />
+            <circle cx="100" cy="67" r="3.6" fill={p.dark} stroke={p.line} strokeWidth={1.1} />
           </>
         ),
       };
@@ -355,6 +363,7 @@ function buildShape(shape: GarmentShape, p: Palette): ShapeDef {
         body:
           "M54,78 L146,78 C150,78 153,81 153,85 L157,160 C157,166 153,170 147,170 L53,170 C47,170 43,166 43,160 L47,85 C47,81 50,78 54,78 Z",
         chest: [82, 104, 36, 32],
+        shadowY: 180,
         details: (
           <>
             <path d="M74,78 C74,46 126,46 126,78" stroke={p.line} strokeWidth={5} fill="none" strokeLinecap="round" />
@@ -369,6 +378,7 @@ function buildShape(shape: GarmentShape, p: Palette): ShapeDef {
         body:
           "M46,62 L154,62 C158,62 161,65 161,69 L161,141 C161,145 158,148 154,148 L46,148 C42,148 39,145 39,141 L39,69 C39,65 42,62 46,62 Z",
         chest: [76, 84, 48, 34],
+        shadowY: 162,
         details: (
           <>
             <path d="M39,92 L161,92" {...seam} />
@@ -430,7 +440,7 @@ export function GarmentArt({
         </clipPath>
       </defs>
 
-      <ellipse cx="100" cy="182" rx="56" ry="7" fill="#000000" opacity="0.05" />
+      <ellipse cx="100" cy={def.shadowY ?? 182} rx="56" ry="7" fill="#000000" opacity="0.05" />
 
       {def.behind}
 

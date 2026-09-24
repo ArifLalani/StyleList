@@ -1,36 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Style List
 
-## Getting Started
+An AI-powered personal closet and outfit assistant.
 
-First, run the development server:
+Style List exists to answer four questions instantly:
+
+1. **What clothes do I own?**
+2. **Where are they?**
+3. **Can I wear them right now?**
+4. **What should I wear?**
+
+Front. Back. Done. Two photos of a piece of clothing, and Style List cleans up
+the images, works out what the item is, remembers where it lives, tracks whether
+it is available, and uses it when helping you decide what to wear.
+
+---
+
+## Running it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000>. A realistic sample closet is loaded on first
+run; Settings offers "Start an empty closet" if you would rather begin from
+scratch.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build && npm run start   # production
+npm run lint                     # eslint
+npx tsc --noEmit                 # types
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## What is real, and what is waiting for a service
 
-To learn more about Next.js, take a look at the following resources:
+Style List never pretends a service is connected when it is not. Settings shows
+the true state of each one.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Capability | Without any configuration | With a service connected |
+| --- | --- | --- |
+| Cleaning up photos | Real processing in your browser: the garment is lifted off a plain background, the largest subject is kept, the item is straightened, cropped, centred and the lighting is evened out. If the photo is too busy to read confidently, your original is kept and the app says so. | `POST /api/ai/process-image` forwards the photo to `STYLE_LIST_IMAGE_API_URL` and returns the cleaned image. |
+| Identifying an item | Real measurement from the pixels: dominant colours in the app's own colour vocabulary, category from the silhouette, plain/striped/printed from the surface. Brand and material are left blank rather than guessed. | `POST /api/ai/analyze` reads the photo with Claude (`ANTHROPIC_API_KEY`) and returns name, category, colours, pattern, brand, material and season. |
+| Weather | You tap today's weather. Works offline, needs no permissions. | With permission, the browser's location is sent to Open-Meteo (free, no key) for the current conditions. |
+| Try It On | The UI, the stored photo and the hand-off are all built. No rendering is faked. | `POST /api/ai/try-on` forwards to `STYLE_LIST_TRY_ON_API_URL`. |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Image processing only ever crops, rotates, masks or applies a global tone
+curve. Logos, prints, stitching, colours and wear are the photographed ones -
+the presentation is cleaned up, the garment is not redesigned.
 
-## Deploy on Vercel
+### Environment variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All optional. See `.env.example`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+ANTHROPIC_API_KEY=            # turns on item identification with Claude
+STYLE_LIST_IMAGE_API_URL=     # an endpoint accepting multipart "image", returning an image
+STYLE_LIST_IMAGE_API_KEY=     # sent as a bearer token, if the service needs one
+STYLE_LIST_IMAGE_API_NAME=    # friendly name shown in Settings
+STYLE_LIST_TRY_ON_API_URL=    # an endpoint accepting a person photo + garments
+STYLE_LIST_TRY_ON_API_KEY=
+```
+
+---
+
+## Where things live
+
+```
+src/
+  app/
+    page.tsx              Home - what should I wear today
+    closet/               My Closet grid, search, filters, item detail
+    add/                  The camera flow: front, back, clean up, confirm, save
+    what-to-wear/         Ask in your own words, three outfits back
+    outfits/  trips/  laundry/  needs/  settings/  try-it-on/  more/
+    api/ai/               status, analyze, process-image, try-on
+  components/
+    layout/AppShell       Sidebar on desktop, bottom bar on phones
+    ui/                   Button, Sheet, Selector, GarmentArt, ItemImage, Toast...
+    add/ closet/ outfit/ trips/ home/
+  lib/
+    types.ts              The data model
+    store.tsx             All state, persisted to this browser
+    photoStore.ts         Photos in IndexedDB (too big for localStorage)
+    seed.ts               The sample closet
+    ai/imageProcessing.ts processClothingImage()
+    ai/analyzeClothing.ts analyzeClothingItem()
+    ai/stylist.ts         The outfit engine and the plain-language parser
+    ai/tryOn.ts           The future integration hook
+    weather.ts colors.ts utils.ts
+```
+
+### Storage
+
+The prototype keeps everything on the device: the closet in `localStorage`
+(`stylelist.closet.v1`), photos in IndexedDB (`stylelist-photos`). The shapes in
+`lib/types.ts` are what a Supabase/Postgres schema would hold, and
+`lib/store.tsx` is the single place that would change.
+
+### Illustrations
+
+An item without a photo is drawn from its category and colours
+(`components/ui/GarmentArt.tsx`), so the closet reads as a wardrobe from the
+first screen. Photographed items always show their own photo.
+
+---
+
+## The stylist
+
+`lib/ai/stylist.ts` scores clothes you actually own against:
+
+- the weather and the season
+- where you are standing right now, and where each item is
+- what is clean, in the wash, packed or away
+- how formal the occasion is
+- colour harmony with the rest of the outfit
+- what you wore recently, what you wear together, and what you love
+
+Changing one piece changes **only** that piece - the rest of the outfit is left
+exactly as it is. Only Shuffle rebuilds. When a slot genuinely cannot be
+filled, it is reported as a gap ("Your clean bottom options are at Storage")
+rather than quietly suggesting something you do not own.
+
+It also parses plain English: "all black", "something comfortable", "casual for
+dinner", "I don't feel like wearing jeans", "build something around my grey
+sweats". What it understood is shown as chips, so a misread is visible and
+fixable.

@@ -1,26 +1,244 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ------------------------------------------------------------------ */
+/* Style List design tokens                                            */
+/*                                                                      */
+/* Warm whites, one charcoal ink, one navy accent. Nothing shouts. The  */
+/* clothes are the only colour on the screen that matters.              */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  --color-canvas: #faf9f7;
+  --color-surface: #ffffff;
+  --color-sunken: #f3f2ef;
+  --color-line: #e7e5e0;
+  --color-line-strong: #d7d4ce;
+
+  --color-ink: #17181b;
+  --color-ink-soft: #56585e;
+  --color-ink-mute: #8b8d93;
+
+  --color-accent: #1e2a44;
+  --color-accent-soft: #eef1f7;
+  --color-accent-line: #cdd6e6;
+
+  --color-good: #2f6b4f;
+  --color-good-soft: #e9f2ec;
+  --color-warn: #8a5a12;
+  --color-warn-soft: #f8f0e2;
+  --color-alert: #8e2b28;
+  --color-alert-soft: #f8ebea;
+
+  --radius-control: 16px;
+  --radius-card: 22px;
+  --radius-sheet: 28px;
+
+  --shadow-soft: 0 1px 2px rgba(20, 20, 24, 0.04), 0 10px 30px rgba(20, 20, 24, 0.05);
+  --shadow-lift: 0 2px 4px rgba(20, 20, 24, 0.05), 0 18px 44px rgba(20, 20, 24, 0.09);
+  --shadow-sheet: 0 -8px 40px rgba(20, 20, 24, 0.16);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-display), Georgia, serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-fade-up: fade-up 0.42s var(--ease-out-soft) both;
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-pop: pop 0.4s var(--ease-out-soft) both;
+  --animate-sheet-up: sheet-up 0.34s var(--ease-out-soft) both;
+  --animate-settle: settle 0.65s var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.8s linear infinite;
+  --animate-draw: draw 0.5s var(--ease-out-soft) 0.1s both;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* The cleaned-up garment gently settles into place after processing. */
+@keyframes settle {
+  0% {
+    opacity: 0;
+    transform: scale(1.06) translateY(8px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -180% 0;
+  }
+  to {
+    background-position: 180% 0;
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 30;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                 */
+/*                                                                      */
+/* Inside @layer base on purpose: unlayered rules beat every Tailwind   */
+/* utility, so a plain `button { color: inherit }` here would quietly   */
+/* win over `text-white` on a button.                                   */
+/* ------------------------------------------------------------------ */
+
+@layer base {
+  html {
+    background: var(--color-canvas);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* A visible, calm focus ring - never removed, never neon. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-ink-mute);
+  }
+}
+
+/* Hide scrollbars on the horizontal filter rails without losing scrolling. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Bottom navigation and sticky actions sit above the iPhone home bar. */
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+@utility mb-safe {
+  margin-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+@utility pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+
+@utility text-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+/* The small grey caps above a field or a group. */
+@utility label-caps {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-ink-mute);
+}
+
+@utility card-surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+/* Loading placeholder for a photo that is still being read. */
+@utility shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-sunken) 30%,
+    color-mix(in srgb, var(--color-sunken) 60%, white) 50%,
+    var(--color-sunken) 70%
+  );
+  background-size: 220% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

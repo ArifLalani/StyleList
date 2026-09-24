@@ -1,0 +1,631 @@
+import { suggestPacking } from "./ai/stylist";
+import type {
+  CalendarEvent,
+  ClosetData,
+  ClothingItem,
+  Location,
+  NeedItem,
+  Outfit,
+  Trip,
+  WearHistoryEntry,
+} from "./types";
+import { SLOT_OF_CATEGORY } from "./types";
+
+/**
+ * A realistic starter closet.
+ *
+ * Style List is much easier to understand when it already has clothes in it,
+ * so a new person lands on a full wardrobe they can explore. Settings offers
+ * "Start an empty closet" for anyone who wants to begin from scratch.
+ */
+
+const now = new Date();
+
+function daysAgo(days: number): string {
+  const d = new Date(now);
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
+}
+
+function daysAhead(days: number): string {
+  const d = new Date(now);
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
+}
+
+export const SEED_LOCATIONS: Location[] = [
+  { id: "loc_apartment", name: "Apartment", icon: "apartment", isDefault: true },
+  { id: "loc_leila", name: "Leila's House", icon: "heart" },
+  { id: "loc_mom", name: "Mom's House", icon: "home" },
+  { id: "loc_car", name: "Car", icon: "car" },
+  { id: "loc_storage", name: "Storage", icon: "box" },
+  { id: "loc_suitcase", name: "Suitcase", icon: "suitcase" },
+];
+
+type SeedItem = Omit<ClothingItem, "createdAt"> & { createdDaysAgo: number };
+
+const SEED_ITEMS: SeedItem[] = [
+  {
+    id: "item_hoodie_black",
+    name: "Black Essentials Hoodie",
+    category: "Hoodie",
+    brand: "Essentials",
+    primaryColor: "Black",
+    size: "M",
+    pattern: "Solid",
+    material: "Cotton blend",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: true,
+    season: "All Year",
+    warmth: 4,
+    dressiness: 2,
+    timesWorn: 24,
+    lastWorn: daysAgo(4),
+    createdDaysAgo: 210,
+  },
+  {
+    id: "item_hoodie_grey",
+    name: "Grey Nike Hoodie",
+    category: "Hoodie",
+    brand: "Nike",
+    primaryColor: "Grey",
+    size: "M",
+    pattern: "Logo",
+    material: "Fleece",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: false,
+    season: "Fall",
+    warmth: 4,
+    dressiness: 2,
+    timesWorn: 16,
+    lastWorn: daysAgo(9),
+    createdDaysAgo: 180,
+  },
+  {
+    id: "item_hoodie_navy",
+    name: "Navy Hoodie Set",
+    category: "Hoodie",
+    primaryColor: "Navy",
+    size: "M",
+    pattern: "Solid",
+    material: "Cotton",
+    locationId: "loc_leila",
+    status: "Clean",
+    condition: "Like New",
+    favorite: false,
+    season: "All Year",
+    warmth: 4,
+    dressiness: 2,
+    timesWorn: 5,
+    lastWorn: daysAgo(21),
+    createdDaysAgo: 95,
+    notes: "Matching set with the navy joggers.",
+  },
+  {
+    id: "item_tee_white",
+    name: "White Nike T-Shirt",
+    category: "T-Shirt",
+    brand: "Nike",
+    primaryColor: "White",
+    size: "M",
+    pattern: "Logo",
+    material: "Cotton",
+    locationId: "loc_apartment",
+    status: "Needs Washing",
+    condition: "Good",
+    favorite: false,
+    season: "Summer",
+    warmth: 1,
+    dressiness: 2,
+    timesWorn: 31,
+    lastWorn: daysAgo(2),
+    createdDaysAgo: 240,
+  },
+  {
+    id: "item_tee_black",
+    name: "Black T-Shirt",
+    category: "T-Shirt",
+    primaryColor: "Black",
+    size: "M",
+    pattern: "Solid",
+    material: "Cotton",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: true,
+    season: "All Year",
+    warmth: 1,
+    dressiness: 2,
+    timesWorn: 42,
+    lastWorn: daysAgo(6),
+    createdDaysAgo: 300,
+  },
+  {
+    id: "item_shirt_white",
+    name: "White Button-Up Shirt",
+    category: "Shirt",
+    primaryColor: "White",
+    size: "M",
+    pattern: "Solid",
+    material: "Cotton poplin",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Like New",
+    favorite: false,
+    season: "All Year",
+    warmth: 2,
+    dressiness: 4,
+    timesWorn: 7,
+    lastWorn: daysAgo(34),
+    createdDaysAgo: 150,
+  },
+  {
+    id: "item_sweater_black",
+    name: "Black Long Sweater",
+    category: "Sweater",
+    primaryColor: "Black",
+    size: "M",
+    pattern: "Solid",
+    material: "Merino wool",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: false,
+    season: "Winter",
+    warmth: 4,
+    dressiness: 3,
+    timesWorn: 11,
+    lastWorn: daysAgo(16),
+    createdDaysAgo: 320,
+  },
+  {
+    id: "item_jeans_black",
+    name: "Black Levi's Jeans",
+    category: "Jeans",
+    brand: "Levi's",
+    primaryColor: "Black",
+    size: "32",
+    pattern: "Solid",
+    material: "Denim",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: true,
+    season: "All Year",
+    warmth: 3,
+    dressiness: 3,
+    timesWorn: 38,
+    lastWorn: daysAgo(4),
+    createdDaysAgo: 280,
+  },
+  {
+    id: "item_jeans_blue",
+    name: "Blue Denim Jeans",
+    category: "Jeans",
+    primaryColor: "Blue",
+    size: "32",
+    pattern: "Solid",
+    material: "Denim",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Worn In",
+    favorite: false,
+    season: "All Year",
+    warmth: 3,
+    dressiness: 2,
+    timesWorn: 22,
+    lastWorn: daysAgo(12),
+    createdDaysAgo: 400,
+  },
+  {
+    id: "item_sweatpants_grey",
+    name: "Grey Sweatpants",
+    category: "Sweatpants",
+    primaryColor: "Grey",
+    size: "M",
+    pattern: "Solid",
+    material: "Fleece",
+    locationId: "loc_apartment",
+    status: "Needs Washing",
+    condition: "Good",
+    favorite: true,
+    season: "All Year",
+    warmth: 3,
+    dressiness: 1,
+    timesWorn: 45,
+    lastWorn: daysAgo(1),
+    createdDaysAgo: 260,
+  },
+  {
+    id: "item_cargo_black",
+    name: "Black Cargo Pants",
+    category: "Pants",
+    primaryColor: "Black",
+    size: "32",
+    pattern: "Solid",
+    material: "Cotton twill",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: false,
+    season: "All Year",
+    warmth: 3,
+    dressiness: 2,
+    timesWorn: 13,
+    lastWorn: daysAgo(8),
+    createdDaysAgo: 120,
+  },
+  {
+    id: "item_shorts_black",
+    name: "Black Shorts",
+    category: "Shorts",
+    primaryColor: "Black",
+    size: "M",
+    pattern: "Solid",
+    material: "Cotton",
+    locationId: "loc_storage",
+    status: "Clean",
+    condition: "Good",
+    favorite: false,
+    season: "Summer",
+    warmth: 1,
+    dressiness: 1,
+    timesWorn: 18,
+    lastWorn: daysAgo(64),
+    createdDaysAgo: 420,
+  },
+  {
+    id: "item_jacket_denim",
+    name: "Black Denim Jacket",
+    category: "Jacket",
+    primaryColor: "Black",
+    size: "M",
+    pattern: "Solid",
+    material: "Denim",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: true,
+    season: "Spring",
+    warmth: 3,
+    dressiness: 3,
+    timesWorn: 19,
+    lastWorn: daysAgo(11),
+    createdDaysAgo: 340,
+  },
+  {
+    id: "item_coat_navy",
+    name: "Navy Wool Coat",
+    category: "Coat",
+    primaryColor: "Navy",
+    size: "M",
+    pattern: "Solid",
+    material: "Wool",
+    locationId: "loc_apartment",
+    status: "Dry Cleaning",
+    condition: "Like New",
+    favorite: false,
+    season: "Winter",
+    warmth: 5,
+    dressiness: 4,
+    timesWorn: 6,
+    lastWorn: daysAgo(48),
+    createdDaysAgo: 380,
+  },
+  {
+    id: "item_af1_black",
+    name: "Black Air Force 1",
+    category: "Shoes",
+    subcategory: "Sneakers",
+    brand: "Nike",
+    primaryColor: "Black",
+    size: "10",
+    pattern: "Solid",
+    material: "Leather",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: true,
+    season: "All Year",
+    warmth: 3,
+    dressiness: 2,
+    timesWorn: 52,
+    lastWorn: daysAgo(4),
+    createdDaysAgo: 290,
+  },
+  {
+    id: "item_af1_white",
+    name: "White Air Force 1",
+    category: "Shoes",
+    subcategory: "Sneakers",
+    brand: "Nike",
+    primaryColor: "White",
+    size: "10",
+    pattern: "Solid",
+    material: "Leather",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Worn In",
+    favorite: false,
+    season: "All Year",
+    warmth: 2,
+    dressiness: 2,
+    timesWorn: 40,
+    lastWorn: daysAgo(7),
+    createdDaysAgo: 310,
+  },
+  {
+    id: "item_loafers_white",
+    name: "White Loafers",
+    category: "Shoes",
+    subcategory: "Loafers",
+    primaryColor: "White",
+    size: "10",
+    pattern: "Solid",
+    material: "Leather",
+    locationId: "loc_leila",
+    status: "Clean",
+    condition: "Like New",
+    favorite: false,
+    season: "Spring",
+    warmth: 2,
+    dressiness: 4,
+    timesWorn: 4,
+    lastWorn: daysAgo(27),
+    createdDaysAgo: 100,
+  },
+  {
+    id: "item_runners_grey",
+    name: "Grey Running Shoes",
+    category: "Shoes",
+    subcategory: "Runners",
+    primaryColor: "Grey",
+    size: "10",
+    pattern: "Solid",
+    material: "Mesh",
+    locationId: "loc_car",
+    status: "Clean",
+    condition: "Worn In",
+    favorite: false,
+    season: "All Year",
+    warmth: 2,
+    dressiness: 1,
+    timesWorn: 61,
+    lastWorn: daysAgo(3),
+    createdDaysAgo: 200,
+  },
+  {
+    id: "item_cap_black",
+    name: "Black Baseball Cap",
+    category: "Hat",
+    primaryColor: "Black",
+    size: "One size",
+    pattern: "Solid",
+    material: "Cotton",
+    locationId: "loc_apartment",
+    status: "Clean",
+    condition: "Good",
+    favorite: false,
+    season: "All Year",
+    warmth: 1,
+    dressiness: 1,
+    timesWorn: 29,
+    lastWorn: daysAgo(5),
+    createdDaysAgo: 220,
+  },
+  {
+    id: "item_tee_grey_mom",
+    name: "Grey T-Shirt",
+    category: "T-Shirt",
+    primaryColor: "Light Grey",
+    size: "M",
+    pattern: "Solid",
+    material: "Cotton",
+    locationId: "loc_mom",
+    status: "Clean",
+    condition: "Good",
+    favorite: false,
+    season: "Summer",
+    warmth: 1,
+    dressiness: 1,
+    timesWorn: 9,
+    lastWorn: daysAgo(40),
+    createdDaysAgo: 330,
+  },
+];
+
+function seedItems(): ClothingItem[] {
+  return SEED_ITEMS.map(({ createdDaysAgo, ...item }) => ({
+    ...item,
+    createdAt: daysAgo(createdDaysAgo),
+  }));
+}
+
+function outfitOf(ids: string[], items: ClothingItem[]) {
+  return ids.map((itemId) => {
+    const item = items.find((i) => i.id === itemId);
+    return { itemId, slot: item ? SLOT_OF_CATEGORY[item.category] : ("accessory" as const) };
+  });
+}
+
+function seedOutfits(items: ClothingItem[]): Outfit[] {
+  return [
+    {
+      id: "outfit_friday",
+      name: "Friday Night",
+      items: outfitOf(["item_sweater_black", "item_jeans_black", "item_af1_black"], items),
+      occasion: "Going Out",
+      favorite: true,
+      timesWorn: 6,
+      lastWorn: daysAgo(10),
+      createdAt: daysAgo(70),
+    },
+    {
+      id: "outfit_airport",
+      name: "Airport Fit",
+      items: outfitOf(
+        ["item_hoodie_black", "item_sweatpants_grey", "item_runners_grey", "item_cap_black"],
+        items,
+      ),
+      occasion: "Travel",
+      favorite: true,
+      timesWorn: 4,
+      lastWorn: daysAgo(31),
+      createdAt: daysAgo(120),
+    },
+    {
+      id: "outfit_sunday",
+      name: "Lazy Sunday",
+      items: outfitOf(["item_tee_black", "item_sweatpants_grey", "item_af1_white"], items),
+      occasion: "Casual",
+      favorite: false,
+      timesWorn: 9,
+      lastWorn: daysAgo(3),
+      createdAt: daysAgo(90),
+    },
+  ];
+}
+
+function seedHistory(): WearHistoryEntry[] {
+  return [
+    {
+      id: "wear_1",
+      date: daysAgo(1),
+      itemIds: ["item_hoodie_black", "item_sweatpants_grey", "item_runners_grey"],
+      outfitName: "Around the block",
+      reviewed: true,
+    },
+    {
+      id: "wear_2",
+      date: daysAgo(3),
+      itemIds: ["item_tee_black", "item_sweatpants_grey", "item_af1_white"],
+      outfitId: "outfit_sunday",
+      outfitName: "Lazy Sunday",
+      reviewed: true,
+    },
+    {
+      id: "wear_3",
+      date: daysAgo(4),
+      itemIds: ["item_hoodie_black", "item_jeans_black", "item_af1_black", "item_cap_black"],
+      outfitName: "Coffee run",
+      reviewed: true,
+    },
+    {
+      id: "wear_4",
+      date: daysAgo(10),
+      itemIds: ["item_sweater_black", "item_jeans_black", "item_af1_black"],
+      outfitId: "outfit_friday",
+      outfitName: "Friday Night",
+      reviewed: true,
+    },
+  ];
+}
+
+function seedNeeds(): NeedItem[] {
+  return [
+    {
+      id: "need_1",
+      title: "Plain white t-shirt",
+      kind: "Need",
+      category: "T-Shirt",
+      note: "The current one is getting thin at the collar.",
+      done: false,
+      createdAt: daysAgo(14),
+    },
+    {
+      id: "need_2",
+      title: "Brown leather boots",
+      kind: "Want",
+      category: "Shoes",
+      done: false,
+      createdAt: daysAgo(30),
+    },
+  ];
+}
+
+function seedTrips(): Trip[] {
+  return [
+    {
+      id: "trip_vancouver",
+      destination: "Vancouver",
+      startDate: daysAhead(12),
+      days: 4,
+      activities: ["Casual", "Dinner", "Walking"],
+      expectedWeather: "Rain",
+      expectedTempC: 11,
+      items: [],
+      createdAt: daysAgo(2),
+    },
+  ];
+}
+
+function seedEvents(): CalendarEvent[] {
+  return [
+    { id: "event_1", title: "Dinner with Leila", type: "Dinner", date: daysAhead(2) },
+    { id: "event_2", title: "Team offsite", type: "Work", date: daysAhead(6) },
+  ];
+}
+
+export function createSeedCloset(): ClosetData {
+  const items = seedItems();
+  const closet: ClosetData = {
+    version: 1,
+    profile: {
+      name: "You",
+      currentLocationId: "loc_apartment",
+      units: "C",
+      weather: {
+        tempC: 12,
+        condition: "Cloudy",
+        source: "manual",
+      },
+    },
+    locations: SEED_LOCATIONS,
+    items,
+    images: [],
+    outfits: seedOutfits(items),
+    history: seedHistory(),
+    trips: seedTrips(),
+    needs: seedNeeds(),
+    events: seedEvents(),
+    usingSampleCloset: true,
+  };
+
+  /* The sample trip arrives with a real packing list, built the same way the
+     app builds one, so the feature is visible rather than hidden behind an
+     empty state. */
+  for (const trip of closet.trips) {
+    trip.items = suggestPacking(closet, trip).map((pick) => ({
+      itemId: pick.itemId,
+      packed: false,
+      reason: pick.reason,
+    }));
+  }
+
+  return closet;
+}
+
+export function createEmptyCloset(): ClosetData {
+  return {
+    version: 1,
+    profile: {
+      name: "You",
+      currentLocationId: "loc_apartment",
+      units: "C",
+      weather: { tempC: 12, condition: "Cloudy", source: "manual" },
+    },
+    locations: SEED_LOCATIONS,
+    items: [],
+    images: [],
+    outfits: [],
+    history: [],
+    trips: [],
+    needs: [],
+    events: [],
+    usingSampleCloset: false,
+  };
+}
