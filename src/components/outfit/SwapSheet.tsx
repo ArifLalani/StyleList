@@ -33,17 +33,20 @@ export function SwapSheet({
 }) {
   const { data } = useCloset();
   const label = slot ? SLOT_LABEL[slot].toLowerCase() : "";
+  /* "Choose different shoes", but "Choose a different top". */
+  const plural = slot === "shoes";
+  const title = plural ? `Choose different ${label}` : `Choose a different ${label}`;
 
   return (
     <Sheet
       open={open && Boolean(slot)}
       onClose={onClose}
       size="wide"
-      title={`Choose a different ${label}`}
+      title={title}
       description={
         options.length
           ? "Only clean clothes that are with you right now."
-          : `You have no other clean ${label} options here.`
+          : `Nothing else clean in this category is here right now.`
       }
       footer={
         onRemove && slot !== "top" && slot !== "bottom" ? (

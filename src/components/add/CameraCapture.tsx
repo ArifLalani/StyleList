@@ -121,7 +121,7 @@ export function CameraCapture({
       </div>
 
       <div className="mt-5 flex min-h-0 flex-1 flex-col px-5 sm:px-8">
-        <div className="relative mx-auto w-full max-w-xl flex-1 min-h-[240px] max-h-[62vh] overflow-hidden rounded-[26px] bg-[#1b1c20]">
+        <div className="relative mx-auto w-full max-w-xl flex-1 min-h-[220px] max-h-[52vh] sm:max-h-[62vh] overflow-hidden rounded-[26px] bg-[#1b1c20]">
           <video
             ref={videoRef}
             playsInline
@@ -223,7 +223,7 @@ export function ReviewShot({
       </div>
 
       <div className="mt-5 flex min-h-0 flex-1 flex-col px-5 sm:px-8">
-        <div className="mx-auto w-full max-w-xl flex-1 min-h-[240px] max-h-[62vh] overflow-hidden rounded-[26px] bg-sunken">
+        <div className="mx-auto w-full max-w-xl flex-1 min-h-[220px] max-h-[52vh] sm:max-h-[62vh] overflow-hidden rounded-[26px] bg-sunken">
           {/* A local blob URL from the camera. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt="The photo you just took" className="h-full w-full object-contain" />

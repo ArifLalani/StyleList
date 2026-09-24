@@ -29,7 +29,7 @@ import { laundryItems, pendingWearReview, useCloset } from "@/lib/store";
 import type { OutfitSlot } from "@/lib/types";
 import { SLOT_LABEL, SLOT_OF_CATEGORY } from "@/lib/types";
 import { useOutfitBuilder } from "@/lib/useOutfitBuilder";
-import { formatDate, plural } from "@/lib/utils";
+import { formatDate, plural, relativeDay } from "@/lib/utils";
 import { weatherSentence } from "@/lib/weather";
 
 /**
@@ -111,8 +111,8 @@ export default function HomePage() {
         <section className="mb-6 rounded-[22px] border border-line bg-accent-soft p-5">
           <h2 className="text-[19px] font-semibold tracking-[-0.02em]">How are these clothes?</h2>
           <p className="mt-1 text-[15px] text-ink-soft">
-            You wore {plural(review.itemIds.length, "piece")} on{" "}
-            {formatDate(review.date).toLowerCase()}. Tell Style List what needs washing.
+            You wore {plural(review.itemIds.length, "piece")}{" "}
+            {relativeDay(review.date).toLowerCase()}. Tell Style List what needs washing.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button size="md" onClick={() => setReviewOpen(true)}>

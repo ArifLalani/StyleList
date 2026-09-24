@@ -83,7 +83,7 @@ function OutfitCard({ outfit }: { outfit: Outfit }) {
           <h2 className="truncate text-[21px] font-semibold tracking-[-0.02em]">{outfit.name}</h2>
           <p className="mt-1 text-[14px] text-ink-soft">
             {outfit.timesWorn > 0
-              ? `Worn ${plural(outfit.timesWorn, "time")} · last ${relativeDay(outfit.lastWorn).toLowerCase()}`
+              ? `Worn ${plural(outfit.timesWorn, "time")} · ${relativeDay(outfit.lastWorn)}`
               : "Never worn"}
           </p>
         </div>
